@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import scipy.ndimage.filters as filters
 from skimage import measure
-import drlse_algo as drlse
 import numpy as np
 
 class drlse(object):
@@ -116,7 +115,7 @@ class levelSet(object):
 		lse = drlse(F, self.lamda, self.mu, self.alpha, self.epsilon, self.dt, self.drlse_iter, self.potential_function)
 		for n in range(self.gradient_iter):
 			phi = lse.drlse_edge(phi)
-			if np.mod(n, 2) == 0:			
+			if np.mod(n, 20) == 0:			
 				self.visualization(image,phi)
 				plt.pause(0.3)
 		plt.pause(5)
@@ -128,7 +127,7 @@ def main():
 
 	image = imread('1.png', True)
 	image = np.array(image,dtype='float32')
-	LS = levelSet(4,100,2,-9,2.0,0.8)
+	LS = levelSet(4,101,2,-9,2.0,0.8)
 	LS.gradientDescent(image,240,150)
 
 
