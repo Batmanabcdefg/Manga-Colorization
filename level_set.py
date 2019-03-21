@@ -9,6 +9,39 @@ import cv2
 # import drlse_algo as drlse
 import numpy as np
 
+drawing = False # true if mouse is pressed
+mode = True # if True, draw rectangle. Press 'm' to toggle to curve
+current_former_x,current_former_y = -1,-1
+image = 0
+r = 0
+g = 0
+b = 0
+
+def nothing(x):
+    pass
+
+# mouse callback function
+def paint_draw(event,former_x,former_y,flags,param):
+    global current_former_x,current_former_y,drawing, mode, r, g, b
+ 
+    if event==cv2.EVENT_LBUTTONDOWN:
+        drawing=True
+        current_former_x,current_former_y=former_x,former_y
+ 
+    elif event==cv2.EVENT_MOUSEMOVE:
+        if drawing==True:
+            if mode==True:
+                cv2.line(image,(current_former_x,current_former_y),(former_x,former_y),(b,g,r),5)
+                current_former_x = former_x
+                current_former_y = former_y
+    elif event==cv2.EVENT_LBUTTONUP:
+        drawing=False
+        if mode==True:
+            cv2.line(image,(current_former_x,current_former_y),(former_x,former_y),(b,g,r),5)
+            current_former_x = former_x
+            current_former_y = former_y
+    return former_x,former_y
+
 class drlse(object):
 
 	def __init__(self, F, lamda, mu, alpha, epsilon, dt, iterations, potential_function, M1, M2, F1):
@@ -23,6 +56,9 @@ class drlse(object):
 		self.M1 = M1
 		self.M2 = M2
 		self.F1 = F1
+
+	def sigmoid(self, x):
+		return np.exp(x)/(1+ np.exp(x))
 
 	def drlse_edge(self,phi):
 		[vy, vx] = np.gradient(self.F)
@@ -156,18 +192,37 @@ class levelSet(object):
 		# plt.pause(5)
 
 def main():
-
+	global current_former_x,current_former_y,drawing, mode, r, g, b, image
+ 
 	# iter_inner, iter_outer, lamda, alpha, epsilon, sigma, dt, potential_function
 	# potential_function="single-well"
 
-	image = cv2.imread('1.png',True)
+	image = cv2.imread('13.png',True)
+	image1 = image.copy()
 	# plt.imshow(image)
 	# plt.show()
 	# print(image.shape)
-	image = np.array(image,dtype='float32')
+	cv2.namedWindow('image')
+	#cv2.namedWindow('trackbar')
+	#cv2.resizeWindow('trackbar', (10,10))
+	cv2.setMouseCallback('image', paint_draw)
+	cv2.createTrackbar('R','image',0,255, nothing)
+	cv2.createTrackbar('G','image',0,255, nothing)
+	cv2.createTrackbar('B','image',0,255, nothing)
+	while(1):
+		cv2.imshow('image',image)
+		if cv2.waitKey(20) & 0xFF == 27:
+			break
+		r = cv2.getTrackbarPos('R','image')
+		g = cv2.getTrackbarPos('G','image')
+		b = cv2.getTrackbarPos('B','image')
+	cv2.destroyAllWindows()
+
+	#image = np.array(image,dtype='float32')
 	LS = levelSet(4,100,2,-9,2.0,0.8)
-	boundary = LS.gradientDescent(image[:,:,0],236,170)
-	LS.fillColor(image,boundary,(0,0,255))
+	print(current_former_x, current_former_y)
+	boundary = LS.gradientDescent(image1[:,:,0],current_former_y,current_former_x)
+	LS.fillColor(image1,boundary,(b,g,r))
 
 
 if __name__ == '__main__':
