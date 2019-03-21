@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import webcolors
 from mpl_toolkits.mplot3d import Axes3D
 import scipy.ndimage.filters as filters
+from skimage.draw import polygon, polygon_perimeter
 from skimage import measure
 import cv2
 # import drlse_algo as drlse
@@ -12,6 +13,7 @@ import numpy as np
 drawing = False # true if mouse is pressed
 mode = True # if True, draw rectangle. Press 'm' to toggle to curve
 current_former_x,current_former_y = -1,-1
+ix, iy = -1, -1
 image = 0
 r = 0
 g = 0
@@ -84,7 +86,10 @@ class drlse(object):
 		    edgeTerm = diracPhi * (vx * Nx + vy * Ny) + diracPhi * self.F * curvature
 		    x = (self.F1 - self.M2)/(self.M1 - self.M2)
 		    leakproofterm = self.F*areaTerm*self.sigmoid(x)
+		    y =  self.dt * (self.mu * distRegTerm + self.lamda * edgeTerm + self.alpha * areaTerm - leakproofterm*self.alpha)
+		    print(np.unique(y))
 		    phi = phi + self.dt * (self.mu * distRegTerm + self.lamda * edgeTerm + self.alpha * areaTerm - leakproofterm*self.alpha)
+
 		return phi
 
 	def distReg_p2(self,phi):
@@ -154,6 +159,7 @@ class levelSet(object):
 		ax2.imshow(image, interpolation='nearest', cmap=plt.cm.gray)
 		for n, contour in enumerate(contours):
 			ax2.plot(contour[:, 1], contour[:, 0], linewidth=2)
+			#print(contour)
 		return contour
 
 	def calculateF(self,image):
@@ -165,17 +171,22 @@ class levelSet(object):
 		return 1 / (1+f), np.max(f1), np.min(f1), f1
 
 	def fillColor(self,image,boundary,rgb):
-		boundary[:,[0,1]] = boundary[:,[1,0]]
+		# boundary[:,[0,1]] = boundary[:,[1,0]]
+		#print(boundary)
+		rr, cc = polygon(boundary[:,0], boundary[:,1], image.shape)
+		image[rr,cc,:] = rgb
+		rr, cc = polygon_perimeter(boundary[:,0], boundary[:,1], image.shape)
+		image[rr,cc,:] = rgb
 		# rgb = (webcolors.name_to_rgb(col)[0],webcolors.name_to_rgb(col)[1],webcolors.name_to_rgb(col)[2])
 		# print(rgb)
-		for x in range(image.shape[0]):
-			for y in range(image.shape[1]):
-				if(cv2.pointPolygonTest(boundary,(x,y),True)>0):
-					image[y][x][0] = rgb[0]
-					image[y][x][1] = rgb[1]
-					image[y][x][2] = rgb[2]
-		# cv2.fillPoly(image, pts =[boundary], color=rgb)
-		cv2.imwrite("123.png",image)
+		# for x in range(image.shape[0]):
+		# 	for y in range(image.shape[1]):
+		# 		if(cv2.pointPolygonTest(boundary,(x,y),True)>=0):
+		# 			image[y][x][0] = rgb[0]
+		# 			image[y][x][1] = rgb[1]
+		# 			image[y][x][2] = rgb[2]
+		#cv2.fillPoly(image, pts =[boundary], color=rgb)
+		#cv2.imwrite("123.png",image)
 		cv2.imshow("sdjkfnskj",image)
 		cv2.waitKey(0)
 
@@ -197,12 +208,12 @@ def main():
 	# iter_inner, iter_outer, lamda, alpha, epsilon, sigma, dt, potential_function
 	# potential_function="single-well"
 
-	image = cv2.imread('13.png',True)
+	image = cv2.imread('123.png',True)
 	image1 = image.copy()
 	# plt.imshow(image)
 	# plt.show()
 	# print(image.shape)
-	cv2.namedWindow('image')
+	cv2.namedWindow('image', cv2.WINDOW_NORMAL)
 	#cv2.namedWindow('trackbar')
 	#cv2.resizeWindow('trackbar', (10,10))
 	cv2.setMouseCallback('image', paint_draw)
@@ -218,10 +229,11 @@ def main():
 		b = cv2.getTrackbarPos('B','image')
 	cv2.destroyAllWindows()
 
-	#image = np.array(image,dtype='float32')
-	LS = levelSet(4,100,2,-9,2.0,0.8)
+	#image1 = np.array(image1,dtype='float32')
+	LS = levelSet(4,500,2,-9,2.0,0.8)
 	print(current_former_x, current_former_y)
 	boundary = LS.gradientDescent(image1[:,:,0],current_former_y,current_former_x)
+	#print(boundary)
 	LS.fillColor(image1,boundary,(b,g,r))
 
 
