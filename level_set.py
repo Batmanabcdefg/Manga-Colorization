@@ -11,7 +11,7 @@ import numpy as np
 
 class drlse(object):
 
-	def __init__(self, F, lamda, mu, alpha, epsilon, dt, iterations, potential_function):
+	def __init__(self, F, lamda, mu, alpha, epsilon, dt, iterations, potential_function, M1, M2, F1):
 		self.F = F
 		self.lamda = lamda
 		self.alpha = alpha
@@ -20,6 +20,9 @@ class drlse(object):
 		self.mu = mu
 		self.iter = iterations
 		self.potential_function = potential_function
+		self.M1 = M1
+		self.M2 = M2
+		self.F1 = F1
 
 	def drlse_edge(self,phi):
 		[vy, vx] = np.gradient(self.F)
@@ -43,7 +46,9 @@ class drlse(object):
 		    diracPhi = self.Dirac(phi)
 		    areaTerm = diracPhi * self.F
 		    edgeTerm = diracPhi * (vx * Nx + vy * Ny) + diracPhi * self.F * curvature
-		    phi = phi + self.dt * (self.mu * distRegTerm + self.lamda * edgeTerm + self.alpha * areaTerm)
+		    x = (self.F1 - self.M2)/(self.M1 - self.M2)
+		    leakproofterm = self.F*areaTerm*self.sigmoid(x)
+		    phi = phi + self.dt * (self.mu * distRegTerm + self.lamda * edgeTerm + self.alpha * areaTerm - leakproofterm*self.alpha)
 		return phi
 
 	def distReg_p2(self,phi):
@@ -119,9 +124,9 @@ class levelSet(object):
 		img_smooth = filters.gaussian_filter(image, self.sigma)
 		[Iy, Ix] = np.gradient(img_smooth)
 		f = np.square(Ix) + np.square(Iy)
-		# [Iy, Ix, Iz] = np.gradient(img_smooth)
-		# f = np.square(Ix) + np.square(Iy) + np.square(Iz)
-		return 1 / (1+f)
+		f1 = np.sqrt(f)
+		print(np.unique(f))
+		return 1 / (1+f), np.max(f1), np.min(f1), f1
 
 	def fillColor(self,image,boundary,rgb):
 		boundary[:,[0,1]] = boundary[:,[1,0]]
@@ -140,8 +145,8 @@ class levelSet(object):
 
 	def gradientDescent(self,image,x,y):
 		phi = self.initializePhiAtScribble(image,x,y)
-		F = self.calculateF(image)
-		lse = drlse(F, self.lamda, self.mu, self.alpha, self.epsilon, self.dt, self.drlse_iter, self.potential_function)
+		F, M1, M2, F1 = self.calculateF(image)
+		lse = drlse(F, self.lamda, self.mu, self.alpha, self.epsilon, self.dt, self.drlse_iter, self.potential_function, M1, M2, F1)
 		for n in range(self.gradient_iter):
 			phi = lse.drlse_edge(phi)
 			if np.mod(n, 2) == 0:			
