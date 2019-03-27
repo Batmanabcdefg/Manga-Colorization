@@ -87,7 +87,7 @@ class drlse(object):
 		    x = (self.F1 - self.M2)/(self.M1 - self.M2)
 		    leakproofterm = self.F*areaTerm*self.sigmoid(x)
 		    y =  self.dt * (self.mu * distRegTerm + self.lamda * edgeTerm + self.alpha * areaTerm - leakproofterm*self.alpha)
-		    print(np.unique(y))
+		    #print(np.unique(y))
 		    phi = phi + self.dt * (self.mu * distRegTerm + self.lamda * edgeTerm + self.alpha * areaTerm - leakproofterm*self.alpha)
 
 		return phi
@@ -175,9 +175,9 @@ class levelSet(object):
 		#print(boundary)
 		img = image.copy()
 		rr, cc = polygon(boundary[:,0], boundary[:,1], image.shape)
-		image[rr,cc,:] = rgb
+		image[rr,cc,:] = rgb#*image[rr,cc,:]
 		rr, cc = polygon_perimeter(boundary[:,0], boundary[:,1], image.shape)
-		image[rr,cc,:] = rgb
+		image[rr,cc,:] = rgb#*image[rr,cc,:]
 		# rgb = (webcolors.name_to_rgb(col)[0],webcolors.name_to_rgb(col)[1],webcolors.name_to_rgb(col)[2])
 		# print(rgb)
 		# for x in range(image.shape[0]):
@@ -188,18 +188,21 @@ class levelSet(object):
 		# 			image[y][x][2] = rgb[2]
 		#cv2.fillPoly(image, pts =[boundary], color=rgb)
 		#cv2.imwrite("123.png",image)
-		#cv2.imshow("sdjkfnskj",image+img)
-		#cv2.waitKey(0)
-
+		# cv2.imshow("sdjkfnskj",image)
+		# cv2.waitKey(0)
+		return image
 	def gradientDescent(self,image,x,y):
 		phi = self.initializePhiAtScribble(image,x,y)
 		F, M1, M2, F1 = self.calculateF(image)
 		lse = drlse(F, self.lamda, self.mu, self.alpha, self.epsilon, self.dt, self.drlse_iter, self.potential_function, M1, M2, F1)
-		for n in range(self.gradient_iter):
-			phi = lse.drlse_edge(phi)
-			if np.mod(n, 2) == 0:			
-				boundary = self.visualization(image.copy(),phi)
-				plt.pause(0.3)
+		try:
+			for n in range(self.gradient_iter):
+				phi = lse.drlse_edge(phi)
+				if np.mod(n, 2) == 0:			
+					boundary = self.visualization(image.copy(),phi)
+					plt.pause(0.3)
+		except KeyboardInterrupt:
+			pass
 		return np.int32(boundary), F
 		# plt.pause(5)
 def RGB2YUV( rgb ):
@@ -213,13 +216,13 @@ def RGB2YUV( rgb ):
     return yuv
 
 
-def main():
+def main(filename):
 	global current_former_x,current_former_y,drawing, mode, r, g, b, image
  
 	# iter_inner, iter_outer, lamda, alpha, epsilon, sigma, dt, potential_function
 	# potential_function="single-well"
 
-	image = cv2.imread('13.png',True)
+	image = cv2.imread(filename,True)
 	image1 = image.copy()
 	# plt.imshow(image)
 	# plt.show()
@@ -245,14 +248,14 @@ def main():
 	print(current_former_x, current_former_y)
 	boundary, F= LS.gradientDescent(image1[:,:,0],current_former_y,current_former_x)
 	#print(boundary)
-	img_yuv = cv2.cvtColor(image1, cv2.COLOR_BGR2YUV)
-	yuv = RGB2YUV(np.asarray([r,g,b]).reshape((3,1)))
-	print(yuv, F.shape)
-	#F= LS.calculateF(img_yuv)
-	xyz = cv2.filter2D(np.square(1-F),-1,yuv[0])
-	img_yuv[:,:,0] = xyz
-	cv2.imshow("sdjkfnskj",cv2.cvtColor(img_yuv, cv2.COLOR_LUV2RGB))
-	cv2.waitKey(0)
+	# img_yuv = cv2.cvtColor(image1, cv2.COLOR_BGR2YUV)
+	# yuv = RGB2YUV(np.asarray([r,g,b]).reshape((3,1)))
+	# print(yuv, F.shape)
+	# #F= LS.calculateF(img_yuv)
+	# xyz = cv2.filter2D(np.square(1-F),-1,yuv[0])
+	# img_yuv[:,:,0] = xyz
+	# cv2.imshow("sdjkfnskj",cv2.cvtColor(img_yuv, cv2.COLOR_LUV2RGB))
+	# cv2.waitKey(0)
 	LS.fillColor(image1,boundary,(b,g,r))
 
 
