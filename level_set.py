@@ -167,12 +167,45 @@ class levelSet(object):
 		[Iy, Ix] = np.gradient(img_smooth)
 		f = np.square(Ix) + np.square(Iy)
 		f1 = np.sqrt(f)
+		self.FI = 1 / (1+f)
 		#print(np.unique(f))
 		return 1 / (1+f), np.max(f1), np.min(f1), f1
+	def strokepreserving(self, image, rgb):
+		img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+		color = np.array(rgb)
+		colored_img = np.ones((self.phi.shape[0],self.phi.shape[1],3), dtype=np.uint8)
+		colored_img[self.phi<0] = color
+		# plt.imshow(colored_img)
+		# plt.pause(0.2)
 
-	def fillColor(self,image,boundary,rgb):
+		yuv_img = cv2.cvtColor(colored_img, cv2.COLOR_BGR2YUV)
+		# plt.imshow( LS.FI[60:100] )
+		# plt.pause(0.2)
+		plt.imshow(( (1-self.FI)**2 ))
+		plt.pause(0.2)
+		print(np.unique(self.FI,return_counts=True))
+		y=0
+		yuv_img[:,:,y] = yuv_img[:,:,y] * ( (1-self.FI)**2 )
+
+		colored_img = cv2.cvtColor(yuv_img, cv2.COLOR_YUV2BGR)
+		# cv2.imshow('coloured',colored_img)
+		# cv2.waitKey(0)
+		# cv2.destroyAllWindows()
+		colored_img[:,:,0] *= np.array(img/10,dtype=np.uint8)
+		colored_img[:,:,1] *= np.array(img/10,dtype=np.uint8)
+		colored_img[:,:,2] *= np.array(img/10,dtype=np.uint8)
+		plt.imshow(colored_img)
+		plt.pause(0.2)
+		res = np.ones((self.phi.shape[0],self.phi.shape[1],3), dtype=np.uint8)
+		res[self.phi>0] = colored_img[self.phi>0] + image[self.phi>0]
+		res[self.phi<0] = colored_img[self.phi<0]	
+		cv2.imwrite("res_shading_4.png", res)	
+		plt.imshow(colored_img)
+		plt.pause(0.2)
+	def fillColor(self,image, boundary,rgb):
 		# boundary[:,[0,1]] = boundary[:,[1,0]]
 		#print(boundary)
+		#b = np.repeat(F[:, :, np.newaxis], 3, axis=2)
 		img = image.copy()
 		rr, cc = polygon(boundary[:,0], boundary[:,1], image.shape)
 		image[rr,cc,:] = rgb#*image[rr,cc,:]
@@ -192,14 +225,14 @@ class levelSet(object):
 		# cv2.waitKey(0)
 		return image
 	def gradientDescent(self,image,x,y):
-		phi = self.initializePhiAtScribble(image,x,y)
+		self.phi = self.initializePhiAtScribble(image,x,y)
 		F, M1, M2, F1 = self.calculateF(image)
 		lse = drlse(F, self.lamda, self.mu, self.alpha, self.epsilon, self.dt, self.drlse_iter, self.potential_function, M1, M2, F1)
 		try:
 			for n in range(self.gradient_iter):
-				phi = lse.drlse_edge(phi)
+				self.phi = lse.drlse_edge(self.phi)
 				if np.mod(n, 2) == 0:			
-					boundary = self.visualization(image.copy(),phi)
+					boundary = self.visualization(image.copy(),self.phi)
 					plt.pause(0.3)
 		except KeyboardInterrupt:
 			pass
@@ -256,8 +289,10 @@ def main(filename):
 	# img_yuv[:,:,0] = xyz
 	# cv2.imshow("sdjkfnskj",cv2.cvtColor(img_yuv, cv2.COLOR_LUV2RGB))
 	# cv2.waitKey(0)
-	LS.fillColor(image1,boundary,(b,g,r))
+	LS.strokepreserving(image1, (b,g,r))
+	cv2.imwrite("res.png",LS.fillColor(image1, boundary,(b,g,r)))
 
 
 if __name__ == '__main__':
-	main()
+	filename = input()
+	main(filename)
