@@ -25,11 +25,11 @@ def nothing(x):
 # mouse callback function
 def paint_draw(event,former_x,former_y,flags,param):
     global current_former_x,current_former_y,drawing, mode, r, g, b
- 
+
     if event==cv2.EVENT_LBUTTONDOWN:
         drawing=True
         current_former_x,current_former_y=former_x,former_y
- 
+
     elif event==cv2.EVENT_MOUSEMOVE:
         if drawing==True:
             if mode==True:
@@ -159,7 +159,6 @@ class levelSet(object):
 		ax2.imshow(image, interpolation='nearest', cmap=plt.cm.gray)
 		for n, contour in enumerate(contours):
 			ax2.plot(contour[:, 1], contour[:, 0], linewidth=2)
-			#print(contour)
 		return contour
 
 	def calculateF(self,image):
@@ -231,19 +230,19 @@ class levelSet(object):
 		try:
 			for n in range(self.gradient_iter):
 				self.phi = lse.drlse_edge(self.phi)
-				if np.mod(n, 2) == 0:			
+				if np.mod(n, 2) == 0:
 					boundary = self.visualization(image.copy(),self.phi)
-					plt.pause(0.3)
+					plt.pause(1)
 		except KeyboardInterrupt:
 			pass
 		return np.int32(boundary), F
 		# plt.pause(5)
 def RGB2YUV( rgb ):
-     
+
     m = np.array([[ 0.29900, 0.587,  0.114],
                  [-0.14713, -0.28886, 0.436],
                  [ 0.615, -0.51499, -0.10001]])
-     
+
     yuv = np.dot(m,rgb)
     print(yuv.shape, rgb.shape)
     return yuv
@@ -251,7 +250,7 @@ def RGB2YUV( rgb ):
 
 def main(filename):
 	global current_former_x,current_former_y,drawing, mode, r, g, b, image
- 
+
 	# iter_inner, iter_outer, lamda, alpha, epsilon, sigma, dt, potential_function
 	# potential_function="single-well"
 
